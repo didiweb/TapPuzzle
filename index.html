@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slide Puzzle ★ by didi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Poiret+One&family=Ubuntu+Condensed:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poiret One', cursive, sans-serif;
+            background: linear-gradient(160deg, #3d6b44 0%, #74a57a 45%, #5a9062 100%);
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            color: #fff;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            overflow: hidden;
+        }
+
+        /* ── Header ──────────────────────────────────── */
+        header {
+            width: 100%;
+            max-width: 420px;
+            padding: 14px 16px 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        h1 {
+            font-size: clamp(1.4rem, 6vw, 2.2rem);
+            letter-spacing: 4px;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.25);
+        }
+
+        /* ── Stats bar ───────────────────────────────── */
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            width: 100%;
+            background: rgba(0,0,0,0.22);
+            backdrop-filter: blur(6px);
+            border-radius: 14px;
+            padding: 10px 0;
+            font-family: 'Ubuntu Condensed', sans-serif;
+        }
+
+        .stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1px;
+        }
+
+        .stat + .stat {
+            border-left: 1px solid rgba(255,255,255,0.15);
+        }
+
+        .stat-label {
+            font-size: clamp(0.6rem, 2.5vw, 0.75rem);
+            letter-spacing: 1px;
+            opacity: 0.75;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-size: clamp(1.1rem, 5vw, 1.6rem);
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        /* ── Start button ────────────────────────────── */
+        #start-btn {
+            padding: 10px 36px;
+            font-family: 'Poiret One', cursive;
+            font-size: clamp(1.1rem, 4.5vw, 1.5rem);
+            letter-spacing: 3px;
+            background: rgba(255,255,255,0.15);
+            color: #fff;
+            border: 1.5px solid rgba(255,255,255,0.5);
+            border-radius: 14px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+
+        #start-btn:hover {
+            background: rgba(255,255,255,0.25);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+        }
+
+        #start-btn:active {
+            transform: scale(0.96);
+        }
+
+        /* ── Board ───────────────────────────────────── */
+        #board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: clamp(5px, 1.5vw, 10px);
+            padding: clamp(10px, 2vw, 16px);
+            background: rgba(0,0,0,0.2);
+            backdrop-filter: blur(4px);
+            border-radius: 22px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.1);
+            width: min(92vw, 420px);
+            height: min(92vw, 420px);
+        }
+
+        /* ── Tiles ───────────────────────────────────── */
+        .tile {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(145deg, #4f8e57, #3d6b44);
+            border-radius: clamp(8px, 2vw, 14px);
+            font-family: 'Ubuntu Condensed', sans-serif;
+            font-size: clamp(1.8rem, 9vw, 4.5rem);
+            font-weight: 700;
+            color: #fff;
+            cursor: pointer;
+            transition: transform 0.12s ease, box-shadow 0.12s ease,
+                        color 0.25s ease;
+            box-shadow: 0 5px 12px rgba(0,0,0,0.3),
+                        inset 0 1px 0 rgba(255,255,255,0.12);
+            text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+        }
+
+        .tile:hover:not(.tile-empty) {
+            transform: translateY(-2px) scale(1.03);
+            box-shadow: 0 8px 18px rgba(0,0,0,0.35);
+        }
+
+        .tile:active:not(.tile-empty) {
+            transform: scale(0.93);
+        }
+
+        .tile-empty {
+            background: rgba(0,0,0,0.18) !important;
+            box-shadow: inset 0 3px 10px rgba(0,0,0,0.35) !important;
+            cursor: default;
+        }
+
+        .tile-correct {
+            color: rgba(255,255,255,0.3);
+        }
+
+        .tile-moved {
+            animation: pop 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes pop {
+            0%   { transform: scale(0.82); }
+            60%  { transform: scale(1.06); }
+            100% { transform: scale(1); }
+        }
+
+        /* ── Footer ──────────────────────────────────── */
+        footer {
+            padding: 10px 16px 14px;
+            font-family: 'Ubuntu Condensed', sans-serif;
+            font-size: clamp(0.75rem, 3vw, 0.95rem);
+            opacity: 0.7;
+            text-align: center;
+        }
+
+        footer a {
+            color: #fff;
+            text-decoration: none;
+        }
+
+        footer a:hover { opacity: 0.85; }
+
+        /* ── Win modal ───────────────────────────────── */
+        #win-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.65);
+            backdrop-filter: blur(6px);
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        #win-modal.show {
+            display: flex;
+            animation: fadeIn 0.25s ease;
+        }
+
+        .modal-box {
+            background: linear-gradient(150deg, #477f4e, #64a06b);
+            border-radius: 24px;
+            padding: clamp(24px, 6vw, 44px) clamp(24px, 6vw, 40px);
+            text-align: center;
+            box-shadow: 0 25px 70px rgba(0,0,0,0.5);
+            max-width: 320px;
+            width: 88%;
+            animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .modal-box h2 {
+            font-size: clamp(1.8rem, 7vw, 2.8rem);
+            margin-bottom: 4px;
+        }
+
+        .modal-subtitle {
+            opacity: 0.8;
+            font-size: 0.95rem;
+            margin-bottom: 16px;
+        }
+
+        .result-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 14px 0;
+            font-family: 'Ubuntu Condensed', sans-serif;
+        }
+
+        .result-item {
+            background: rgba(0,0,0,0.2);
+            border-radius: 12px;
+            padding: 10px;
+        }
+
+        .r-label {
+            font-size: 0.7rem;
+            letter-spacing: 1px;
+            opacity: 0.75;
+            text-transform: uppercase;
+        }
+
+        .r-value {
+            font-size: 1.6rem;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        #new-record {
+            background: rgba(255, 215, 0, 0.25);
+            border: 1px solid rgba(255, 215, 0, 0.5);
+            border-radius: 10px;
+            padding: 8px 14px;
+            font-size: 0.95rem;
+            margin: 8px 0 14px;
+            display: none;
+        }
+
+        .play-again {
+            width: 100%;
+            padding: 12px;
+            font-family: 'Poiret One', cursive;
+            font-size: 1.25rem;
+            letter-spacing: 2px;
+            background: rgba(255,255,255,0.2);
+            color: #fff;
+            border: 1.5px solid rgba(255,255,255,0.45);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.15s;
+        }
+
+        .play-again:hover  { background: rgba(255,255,255,0.32); }
+        .play-again:active { transform: scale(0.96); }
+
+        /* ── Animations ──────────────────────────────── */
+        @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes popIn  {
+            from { transform: scale(0.4); opacity: 0; }
+            to   { transform: scale(1);   opacity: 1; }
+        }
+
+        .confetti-piece {
+            position: fixed;
+            top: -12px;
+            pointer-events: none;
+            z-index: 99;
+            animation: confettiFall linear forwards;
+        }
+
+        @keyframes confettiFall {
+            to { transform: translateY(110vh) rotate(540deg); }
+        }
+
+        /* ── Hint text (shown before first game) ─────── */
+        #hint {
+            font-family: 'Ubuntu Condensed', sans-serif;
+            font-size: clamp(0.7rem, 2.5vw, 0.85rem);
+            opacity: 0.6;
+            letter-spacing: 0.5px;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>★ SLIDE PUZZLE ★</h1>
+    <div class="stats">
+        <div class="stat">
+            <span class="stat-label">Mosse</span>
+            <span class="stat-value" id="score">—</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">Record</span>
+            <span class="stat-value" id="best">—</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">Tempo</span>
+            <span class="stat-value" id="timer">—</span>
+        </div>
+    </div>
+    <button id="start-btn" onclick="startGame()">INIZIA</button>
+    <span id="hint">Tocca un numero vicino alla casella vuota • usa le frecce ↑↓←→</span>
+</header>
+
+<div id="board"></div>
+
+<footer>
+    <a href="https://play.google.com/store/apps/details?id=eu.didiweb.SlidePuzzle">
+        📱 Scarica l'app su Play Store
+    </a>
+</footer>
+
+<!-- Win modal -->
+<div id="win-modal">
+    <div class="modal-box">
+        <h2>🎉 HAI VINTO!</h2>
+        <p class="modal-subtitle">Complimenti!</p>
+        <div class="result-grid">
+            <div class="result-item">
+                <div class="r-label">Mosse</div>
+                <div class="r-value" id="modal-moves">0</div>
+            </div>
+            <div class="result-item">
+                <div class="r-label">Tempo</div>
+                <div class="r-value" id="modal-time">0:00</div>
+            </div>
+        </div>
+        <div id="new-record">🏆 Nuovo record!</div>
+        <button class="play-again" onclick="startGame()">GIOCA ANCORA</button>
+    </div>
+</div>
+
+<script>
+    const SIZE  = 3;
+    const TOTAL = SIZE * SIZE;
+
+    let steps       = 0;
+    let timerSec    = 0;
+    let timerHandle = null;
+    let gameActive  = false;
+
+    /* ── Board init ──────────────────────────────────── */
+    function initBoard() {
+        const board = document.getElementById('board');
+        for (let i = 1; i <= TOTAL; i++) {
+            const t = document.createElement('div');
+            t.className = 'tile tile-empty';
+            t.id = 'tile-' + i;
+            t.addEventListener('click', () => onTileClick(i));
+            board.appendChild(t);
+        }
+    }
+
+    /* ── Click / tap handler ─────────────────────────── */
+    function onTileClick(pos) {
+        if (!gameActive) return;
+        const ep = findEmpty();
+        if (ep === -1) return;
+
+        const er = Math.floor((ep  - 1) / SIZE), ec = (ep  - 1) % SIZE;
+        const tr = Math.floor((pos - 1) / SIZE), tc = (pos - 1) % SIZE;
+
+        if (tr === er) {
+            const d = ec - tc;
+            if (Math.abs(d) === 1) {
+                steps++;
+                slide(pos, ep);
+            } else if (Math.abs(d) === 2) {
+                steps++;
+                const mid = pos + (d > 0 ? 1 : -1);
+                slide(mid, ep);
+                slide(pos, mid);
+            }
+        } else if (tc === ec) {
+            const d = er - tr;
+            if (Math.abs(d) === 1) {
+                steps++;
+                slide(pos, ep);
+            } else if (Math.abs(d) === 2) {
+                steps++;
+                const mid = pos + (d > 0 ? SIZE : -SIZE);
+                slide(mid, ep);
+                slide(pos, mid);
+            }
+        }
+        afterMove();
+    }
+
+    /* ── Arrow-key support ───────────────────────────── */
+    document.addEventListener('keydown', e => {
+        if (!gameActive) return;
+        const ep = findEmpty();
+        const er = Math.floor((ep - 1) / SIZE), ec = (ep - 1) % SIZE;
+        let tp = -1;
+        if      (e.key === 'ArrowLeft'  && ec < SIZE - 1) tp = ep + 1;
+        else if (e.key === 'ArrowRight' && ec > 0       ) tp = ep - 1;
+        else if (e.key === 'ArrowUp'    && er < SIZE - 1) tp = ep + SIZE;
+        else if (e.key === 'ArrowDown'  && er > 0       ) tp = ep - SIZE;
+        if (tp === -1) return;
+        e.preventDefault();
+        steps++;
+        slide(tp, ep);
+        afterMove();
+    });
+
+    /* ── Move one tile: fromPos → toPos ──────────────── */
+    function slide(fromPos, toPos) {
+        const from = document.getElementById('tile-' + fromPos);
+        const to   = document.getElementById('tile-' + toPos);
+        to.textContent = from.textContent;
+        from.textContent = '';
+        to.classList.remove('tile-moved');
+        void to.offsetWidth; // force reflow to restart animation
+        to.classList.add('tile-moved');
+    }
+
+    /* ── After every move ────────────────────────────── */
+    function afterMove() {
+        document.getElementById('score').textContent = steps;
+        refreshStyles();
+        if (isWon()) handleWin();
+    }
+
+    /* ── Find the empty cell (1-indexed) ─────────────── */
+    function findEmpty() {
+        for (let i = 1; i <= TOTAL; i++) {
+            if (document.getElementById('tile-' + i).textContent === '') return i;
+        }
+        return -1;
+    }
+
+    /* ── Sync CSS classes to current state ───────────── */
+    function refreshStyles() {
+        for (let i = 1; i <= TOTAL; i++) {
+            const t = document.getElementById('tile-' + i);
+            t.classList.remove('tile-empty', 'tile-correct');
+            if (t.textContent === '')      t.classList.add('tile-empty');
+            else if (+t.textContent === i) t.classList.add('tile-correct');
+        }
+    }
+
+    /* ── Win condition: 1-8 in order, cell 9 empty ───── */
+    function isWon() {
+        for (let i = 1; i < TOTAL; i++) {
+            if (+document.getElementById('tile-' + i).textContent !== i) return false;
+        }
+        return document.getElementById('tile-' + TOTAL).textContent === '';
+    }
+
+    /* ── Handle win ──────────────────────────────────── */
+    function handleWin() {
+        gameActive = false;
+        stopTimer();
+
+        const last = document.getElementById('tile-' + TOTAL);
+        last.textContent = TOTAL;
+        last.classList.remove('tile-empty');
+        last.classList.add('tile-correct');
+
+        const prev  = getBest();
+        const isNew = prev === null || steps < prev;
+        if (isNew) { saveBest(steps); updateBestDisplay(); }
+
+        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+        launchConfetti();
+        setTimeout(() => showWinModal(isNew), 500);
+    }
+
+    /* ── Timer ───────────────────────────────────────── */
+    function startTimer() {
+        stopTimer();
+        timerSec = 0;
+        document.getElementById('timer').textContent = '0:00';
+        timerHandle = setInterval(() => {
+            timerSec++;
+            const m = Math.floor(timerSec / 60);
+            const s = timerSec % 60;
+            document.getElementById('timer').textContent =
+                `${m}:${s.toString().padStart(2, '0')}`;
+        }, 1000);
+    }
+
+    function stopTimer() {
+        clearInterval(timerHandle);
+        timerHandle = null;
+    }
+
+    /* ── Start / restart game ────────────────────────── */
+    function startGame() {
+        document.getElementById('win-modal').classList.remove('show');
+        document.getElementById('hint').style.display = 'none';
+
+        const arr = solvableShuffle();
+        for (let i = 1; i <= TOTAL; i++) {
+            const t = document.getElementById('tile-' + i);
+            t.className = 'tile';
+            t.textContent = arr[i - 1] === 0 ? '' : arr[i - 1];
+        }
+        steps = 0;
+        document.getElementById('score').textContent = '0';
+        refreshStyles();
+        startTimer();
+        gameActive = true;
+    }
+
+    /* ── Solvable Fisher-Yates shuffle ───────────────── */
+    function solvableShuffle() {
+        const a = [...Array.from({length: TOTAL - 1}, (_, i) => i + 1), 0];
+        do {
+            for (let i = a.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [a[i], a[j]] = [a[j], a[i]];
+            }
+        } while (!isSolvable(a));
+        return a;
+    }
+
+    /* ── For odd-size grids: solvable iff inversions even */
+    function isSolvable(arr) {
+        let inv = 0;
+        const nums = arr.filter(x => x !== 0);
+        for (let i = 0; i < nums.length; i++)
+            for (let j = i + 1; j < nums.length; j++)
+                if (nums[i] > nums[j]) inv++;
+        return inv % 2 === 0;
+    }
+
+    /* ── Best score (localStorage) ───────────────────── */
+    function getBest()   { const v = localStorage.getItem('spBest'); return v ? +v : null; }
+    function saveBest(n) { localStorage.setItem('spBest', String(n)); }
+    function updateBestDisplay() {
+        const b = getBest();
+        document.getElementById('best').textContent = b !== null ? b : '—';
+    }
+
+    /* ── Win modal ───────────────────────────────────── */
+    function showWinModal(isNew) {
+        const m = Math.floor(timerSec / 60), s = timerSec % 60;
+        document.getElementById('modal-moves').textContent = steps;
+        document.getElementById('modal-time').textContent  =
+            `${m}:${s.toString().padStart(2, '0')}`;
+        document.getElementById('new-record').style.display = isNew ? 'block' : 'none';
+        document.getElementById('win-modal').classList.add('show');
+    }
+
+    /* ── Confetti burst ──────────────────────────────── */
+    function launchConfetti() {
+        const palette = ['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#ff922b','#da77ff','#fff'];
+        for (let i = 0; i < 65; i++) {
+            setTimeout(() => {
+                const el = document.createElement('div');
+                el.className = 'confetti-piece';
+                const size = Math.random() * 9 + 5;
+                Object.assign(el.style, {
+                    left:              Math.random() * 100 + 'vw',
+                    width:             size + 'px',
+                    height:            size + 'px',
+                    background:        palette[~~(Math.random() * palette.length)],
+                    borderRadius:      Math.random() > 0.4 ? '50%' : '2px',
+                    animationDuration: (Math.random() * 2 + 1.4) + 's',
+                    animationDelay:    (Math.random() * 0.8) + 's',
+                });
+                document.body.appendChild(el);
+                el.addEventListener('animationend', () => el.remove());
+            }, i * 18);
+        }
+    }
+
+    /* ── Init ────────────────────────────────────────── */
+    initBoard();
+    updateBestDisplay();
+</script>
+</body>
+</html>
